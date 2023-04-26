@@ -12,11 +12,11 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.autograd import Variable
+import torch.optim.lr_scheduler as Scheduler
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-# Define a tensorboard writer
-writer = SummaryWriter("./tb_record_3/LunarLanderContinuous-v2")
+
 
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):
@@ -126,7 +126,7 @@ class Critic(nn.Module):
         
 
 class DDPG(object):
-    def __init__(self, num_inputs, action_space, gamma=0.995, tau=0.0005, hidden_size=128, lr_a=1e-4, lr_c=1e-3):
+    def __init__(self, num_inputs, action_space, gamma=0.995, tau=0.0005, hidden_size=128, lr_a=1e-4, lr_c=1e-3, lr_a_decay=0.995, lr_c_decay=0.995, step_size=100):
 
         self.num_inputs = num_inputs
         self.action_space = action_space
@@ -135,10 +135,12 @@ class DDPG(object):
         self.actor_target = Actor(hidden_size, self.num_inputs, self.action_space)
         self.actor_perturbed = Actor(hidden_size, self.num_inputs, self.action_space)
         self.actor_optim = Adam(self.actor.parameters(), lr=lr_a)
+        self.actor_scedule = Scheduler.StepLR(self.actor_optim, step_size=step_size, gamma=lr_a_decay)
 
         self.critic = Critic(hidden_size, self.num_inputs, self.action_space)
         self.critic_target = Critic(hidden_size, self.num_inputs, self.action_space)
         self.critic_optim = Adam(self.critic.parameters(), lr=lr_c)
+        self.critic_scedule = Scheduler.StepLR(self.critic_optim, step_size=step_size, gamma=lr_c_decay)
 
         self.gamma = gamma
         self.tau = tau
@@ -197,13 +199,13 @@ class DDPG(object):
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
         local_time = time.localtime()
         timestamp = time.strftime("%m%d%Y_%H%M%S", local_time)
-        if not os.path.exists('preTrained/'):
-            os.makedirs('preTrained/')
+        if not os.path.exists('preTrained/lunarlander/'):
+            os.makedirs('preTrained/lunarlander/')
 
         if actor_path is None:
-            actor_path = "preTrained/ddpg_actor_{}_{}_{}".format(env_name, timestamp, suffix) 
+            actor_path = "preTrained/lunarlander/ddpg_actor_{}_{}_{}".format(env_name, timestamp, suffix) 
         if critic_path is None:
-            critic_path = "preTrained/ddpg_critic_{}_{}_{}".format(env_name, timestamp, suffix) 
+            critic_path = "preTrained/lunarlander/ddpg_critic_{}_{}_{}".format(env_name, timestamp, suffix) 
         print('Saving models to {} and {}'.format(actor_path, critic_path))
         torch.save(self.actor.state_dict(), actor_path)
         torch.save(self.critic.state_dict(), critic_path)
@@ -215,16 +217,25 @@ class DDPG(object):
         if critic_path is not None: 
             self.critic.load_state_dict(torch.load(critic_path))
 
-def train(env_name):    
-    num_episodes = 2000
-    gamma = 0.995
-    tau = 0.002
-    lr_a = 1e-4
-    lr_c = 1e-3
+def train(gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_ , env_name = 'LunarLanderContinuous-v2'):   
+    # Define a tensorboard writer
+    writer = SummaryWriter("./tb_record_3/LunarLanderContinuous-v2/train-{}-{}".format(lr_a_, lr_c_))
+
+    env = gym.make(env_name)
+    env.seed(10)
+    torch.manual_seed(10)
+
+    num_episodes = 3000
+    gamma = gamma_ #0.995
+    tau = tau_ #0.002
+    lr_a = lr_a_ #1e-4
+    lr_c = lr_c_ #1e-3
+    lr_a_decay=lr_a_decay_ #0.995
+    lr_c_decay=lr_c_decay_ #0.995
     hidden_size = 128
-    noise_scale = 0.3
+    noise_scale = noise_scale_ #0.3
     replay_size = 100000
-    batch_size = 128
+    batch_size = batch_size_ #128
     updates_per_step = 1
     print_freq = 10
     ewma_reward = 0
@@ -234,7 +245,7 @@ def train(env_name):
     updates = 0
 
     
-    agent = DDPG(env.observation_space.shape[0], env.action_space, gamma, tau, hidden_size, lr_a, lr_c)
+    agent = DDPG(env.observation_space.shape[0], env.action_space, gamma, tau, hidden_size, lr_a, lr_c, lr_a_decay, lr_c_decay)
     ounoise = OUNoise(env.action_space.shape[0])
     memory = ReplayMemory(replay_size)
     
@@ -307,8 +318,15 @@ def train(env_name):
         writer.add_scalar('EWMA Reward', ewma_reward, i_episode)
         writer.add_scalar('Critic loss', critic_loss, i_episode)
         writer.add_scalar('Actor loss', actor_loss, i_episode)
-    
-    agent.save_model(env_name, '.pth')        
+
+        if ewma_reward > 120:
+            agent.save_model(env_name, '.pth')
+            print("Solved! Running reward is now {} and "
+                  "the last episode runs to {} time steps!".format(ewma_reward, t))
+            #break
+            return ewma_reward/(i_episode+1)
+    agent.save_model(env_name, '.pth')  
+    return ewma_reward/(i_episode+1)      
  
 
 if __name__ == '__main__':
