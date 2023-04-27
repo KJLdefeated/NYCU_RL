@@ -15,7 +15,10 @@ from torch.autograd import Variable
 import torch.optim.lr_scheduler as Scheduler
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-
+import logging
+from skopt.space import Real, Integer
+from skopt import gp_minimize
+logging.basicConfig(filename='train.log', level=logging.DEBUG)
 
 
 def soft_update(target, source, tau):
@@ -217,17 +220,19 @@ class DDPG(object):
         if critic_path is not None: 
             self.critic.load_state_dict(torch.load(critic_path))
 
-def train(gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_ , env_name = 'LunarLanderContinuous-v2'):   
+def train(lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_ , env_name = 'LunarLanderContinuous-v2'):   
     # Define a tensorboard writer
     writer = SummaryWriter("./tb_record_3/LunarLanderContinuous-v2/train-{}-{}".format(lr_a_, lr_c_))
 
+    logging.info('lr_a = {}, lr_c = {} , lr_a_decay={} , lr_c_decay={}, noise_scale = {} , batch_size = {}'.format(
+        lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_))
     env = gym.make(env_name)
     env.seed(10)
     torch.manual_seed(10)
 
-    num_episodes = 3000
-    gamma = gamma_ #0.995
-    tau = tau_ #0.002
+    num_episodes = 1000
+    gamma = 0.995
+    tau = 0.002
     lr_a = lr_a_ #1e-4
     lr_c = lr_c_ #1e-3
     lr_a_decay=lr_a_decay_ #0.995
@@ -237,7 +242,7 @@ def train(gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, ba
     replay_size = 100000
     batch_size = batch_size_ #128
     updates_per_step = 1
-    print_freq = 10
+    print_freq = 20
     ewma_reward = 0
     rewards = []
     ewma_reward_history = []
@@ -310,8 +315,9 @@ def train(gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, ba
         # update EWMA reward and log the results
         ewma_reward = 0.05 * episode_reward + (1 - 0.05) * ewma_reward
         ewma_reward_history.append(ewma_reward)
-        if i_episode % print_freq == 0:        
-            print("Episode: {}, length: {}, reward: {:.2f}, ewma reward: {:.2f}, val loss: {:.2f}, act loss: {:.2f}".format(i_episode, t, rewards[-1], ewma_reward, critic_loss, actor_loss))
+        if i_episode % print_freq == 0:
+            print("Episode: {}, length: {}, reward: {:.2f}, ewma reward: {:.2f}, val loss: {:.2f}, act loss: {:.2f}".format(i_episode, t, rewards[-1], ewma_reward, critic_loss, actor_loss))    
+            logging.info("Episode: {}, length: {}, reward: {:.2f}, ewma reward: {:.2f}, val loss: {:.2f}, act loss: {:.2f}".format(i_episode, t, rewards[-1], ewma_reward, critic_loss, actor_loss))
 
         #Logging
         writer.add_scalar('Reward', episode_reward, i_episode)
@@ -319,23 +325,37 @@ def train(gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, ba
         writer.add_scalar('Critic loss', critic_loss, i_episode)
         writer.add_scalar('Actor loss', actor_loss, i_episode)
 
-        if ewma_reward > 120:
+        if ewma_reward >= 120:
             agent.save_model(env_name, '.pth')
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(ewma_reward, t))
+            logging.info("Running reward is now {} and the total episode is {}.".format(ewma_reward, i_episode))
             #break
-            return ewma_reward/(i_episode+1)
+            return (ewma_reward+500)/(i_episode+1) #For tuning
+    
     agent.save_model(env_name, '.pth')  
-    return ewma_reward/(i_episode+1)      
+    logging.info("Running reward is now {} and the total episode is {}.".format(ewma_reward, i_episode))
+    return (ewma_reward+500)/(i_episode+1) #For tuning
  
+def hp_tune():
+    #gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_
+    search_space = [
+        Real(0, 0.01, name='lr_a'),
+        Real(0, 0.01, name='lr_c'),
+        Real(0.8, 1, name='lr_a_decay'),
+        Real(0.8, 1, name='lr_c_decay'),
+        Real(0, 0.5, name='noise_scale'),
+        Integer(64, 256, name='batch_size')
+    ]
+
+    def objective(params):
+        episodes_num = -train(params[0], params[1], params[2], params[3], params[4], params[5])
+        return episodes_num
+
+    result = gp_minimize(objective, search_space, n_calls=10, random_state=10)
+
+    print("Best hyperparameters: ", result.x)
+    print("Best objective value: ", result.fun)
+    print("Hyperparameters tried: ", result.x_iters)
+    print("Objective values at each step: ", result.func_vals)
 
 if __name__ == '__main__':
-    # For reproducibility, fix the random seed
-    random_seed = 10  
-    #env = gym.make('LunarLanderContinuous-v2')
-    env = gym.make('LunarLanderContinuous-v2')
-    env.seed(random_seed)  
-    torch.manual_seed(random_seed)  
-    train(env_name='LunarLanderContinuous-v2')
-
-
+    hp_tune()
