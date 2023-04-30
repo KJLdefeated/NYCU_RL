@@ -1,10 +1,10 @@
-This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.7.3)  31 MAR 2023 21:56
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.7.3)  30 APR 2023 13:30
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**/Users/KJL0508/Documents/NYCU/111-2/RL/Hw1/Report/Report1
-(/Users/KJL0508/Documents/NYCU/111-2/RL/Hw1/Report/Report1.tex
+**/Users/KJL0508/Documents/NYCU/111-2/RL/Hw/Hw1/Report/Report1
+(/Users/KJL0508/Documents/NYCU/111-2/RL/Hw/Hw1/Report/Report1.tex
 LaTeX2e <2021-11-15> patch level 1
 L3 programming layer <2022-02-24> (/usr/local/texlive/2022/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2021/10/04 v1.4n Standard LaTeX document class
@@ -124,7 +124,11 @@ File: l3backend-xetex.def 2022-02-07 L3 backend support: XeTeX
 \g__pdf_backend_object_int=\count274
 \g__pdf_backend_annotation_int=\count275
 \g__pdf_backend_link_int=\count276
-) (./Report1.aux)
+) (./Report1.aux
+
+LaTeX Warning: Label `tab:ddpg_results' multiply defined.
+
+)
 \openout1 = `Report1.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
@@ -182,29 +186,52 @@ LaTeX Font Info:    ... okay on input line 23.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-File: ./imgs/vannila.png Graphic file (type bmp)
-<./imgs/vannila.png>
-File: ./imgs/baseline.png Graphic file (type bmp)
-<./imgs/baseline.png>
-File: ./imgs/all.png Graphic file (type bmp)
-<./imgs/all.png>
-File: ./imgs/four_line.png Graphic file (type bmp)
-<./imgs/four_line.png>
+File: ./imgs/pendulum/ewma_rw.png Graphic file (type bmp)
+<./imgs/pendulum/ewma_rw.png>
+File: ./imgs/pendulum/rw.png Graphic file (type bmp)
+<./imgs/pendulum/rw.png>
+File: ./imgs/pendulum/actor_loss.png Graphic file (type bmp)
+<./imgs/pendulum/actor_loss.png>
+File: ./imgs/pendulum/critic_loss.png Graphic file (type bmp)
+<./imgs/pendulum/critic_loss.png>
 
-Underfull \hbox (badness 10000) in paragraph at lines 41--61
+Underfull \hbox (badness 10000) in paragraph at lines 42--47
 
  []
 
 [1
 
-] [2] [3] (./Report1.aux) ) 
+]
+File: ./imgs/lunarlander/ewma_rw.png Graphic file (type bmp)
+<./imgs/lunarlander/ewma_rw.png>
+File: ./imgs/lunarlander/rw.png Graphic file (type bmp)
+<./imgs/lunarlander/rw.png>
+File: ./imgs/lunarlander/actor_loss.png Graphic file (type bmp)
+<./imgs/lunarlander/actor_loss.png>
+File: ./imgs/lunarlander/critic_loss.png Graphic file (type bmp)
+<./imgs/lunarlander/critic_loss.png>
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--76
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--76
+
+ []
+
+[2] [3] (./Report1.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
+ ) 
 Here is how much of TeX's memory you used:
- 2246 strings out of 476179
- 36081 string characters out of 5809545
- 346089 words of memory out of 5000000
- 23001 multiletter control sequences out of 15000+600000
- 473171 words of font info for 48 fonts, out of 8000000 for 9000
+ 2254 strings out of 476179
+ 37192 string characters out of 5809545
+ 343128 words of memory out of 5000000
+ 23017 multiletter control sequences out of 15000+600000
+ 469761 words of font info for 36 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 55i,10n,62p,372b,261s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 55i,9n,62p,320b,260s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on Report1.pdf (3 pages).

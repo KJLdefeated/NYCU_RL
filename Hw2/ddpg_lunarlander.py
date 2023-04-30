@@ -336,7 +336,6 @@ def train(lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_ , en
     return (ewma_reward+500)/(i_episode+1) #For tuning
  
 def hp_tune():
-    #gamma_, tau_, lr_a_, lr_c_, lr_a_decay_, lr_c_decay_, noise_scale_, batch_size_
     search_space = [
         Real(0, 0.01, name='lr_a'),
         Real(0, 0.01, name='lr_c'),
